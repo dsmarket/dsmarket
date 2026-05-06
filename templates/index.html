@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Investment Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        input {
+            padding: 6px;
+            margin: 5px;
+        }
+
+        button {
+            padding: 6px 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .total {
+            font-size: 22px;
+            font-weight: bold;
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>Add Investor</h2>
+
+    <form method="POST" action="/add">
+        Name:
+        <input type="text" name="name" required>
+
+        Amount:
+        <input type="number" name="amount" required>
+
+        <button type="submit">Add</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Apply Profit %</h2>
+
+    <form method="POST" action="/profit">
+        Percent:
+        <input type="number" step="0.01" name="percent" required>
+
+        <button type="submit">Apply</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Total Portfolio</h2>
+    <div class="total">{{ total }}</div>
+</div>
+
+<div class="card">
+    <h2>Investors</h2>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Balance</th>
+            <th>Deposit</th>
+            <th>Withdraw</th>
+        </tr>
+
+        {% for user in users %}
+        <tr>
+            <td>{{ user[0] }}</td>
+            <td>{{ user[1] }}</td>
+            <td>{{ user[2] }}</td>
+
+            <td>
+                <form method="POST" action="/deposit">
+                    <input type="hidden" name="id" value="{{ user[0] }}">
+                    <input type="number" name="amount" placeholder="Deposit">
+                    <button type="submit">+</button>
+                </form>
+            </td>
+
+            <td>
+                <form method="POST" action="/withdraw">
+                    <input type="hidden" name="id" value="{{ user[0] }}">
+                    <input type="number" name="amount" placeholder="Withdraw">
+                    <button type="submit">-</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
+</div>
+
+</body>
+</html>

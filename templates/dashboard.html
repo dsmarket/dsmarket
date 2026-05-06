@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<h2>Wallet Dashboard</h2>
+
+<h3>Balance: {{ balance }}</h3>
+
+<!-- CHART -->
+<canvas id="chart"></canvas>
+
+<br>
+
+<h3>Deposit</h3>
+<form method="POST" action="/deposit">
+    <input name="amount" type="number">
+    <button>Deposit</button>
+</form>
+
+<h3>Withdraw</h3>
+<form method="POST" action="/withdraw">
+    <input name="amount" type="number">
+    <button>Withdraw</button>
+</form>
+
+<a href="/logout">Logout</a>
+
+<script>
+let data = {{ chart_data | tojson }};
+
+new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+        labels: data.map((_, i) => "Tx " + (i+1)),
+        datasets: [{
+            label: "Balance History",
+            data: data,
+            borderColor: "green",
+            fill: false
+        }]
+    }
+});
+</script>
+
+</body>
+</html>

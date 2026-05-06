@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+</head>
+<body>
+
+<h2>ADMIN PANEL</h2>
+
+<h3>Change Profit %</h3>
+
+<form method="POST" action="/update_settings">
+    Basic: <input name="basic"><br><br>
+    Premium: <input name="premium"><br><br>
+    VIP: <input name="vip"><br><br>
+    <button type="submit">Update</button>
+</form>
+
+<hr>
+
+<h3>Users</h3>
+{% for u in users %}
+<p>{{ u }}</p>
+{% endfor %}
+
+<h3>Wallets</h3>
+{% for w in wallets %}
+<p>{{ w }}</p>
+{% endfor %}
+
+<br>
+<a href="/dashboard">Back</a>
+
+</body>
+</html>
