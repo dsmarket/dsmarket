@@ -27,11 +27,13 @@ def init_db():
     """)
 
     c.execute("""
-        CREATE TABLE IF NOT EXISTS transactions (
+        CREATE TABLE IF NOT EXISTS requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
+            username TEXT,
             type TEXT,
-            amount REAL
+            amount REAL,
+            status TEXT DEFAULT 'pending'
         )
     """)
 
@@ -101,70 +103,45 @@ def dashboard():
     conn.close()
 
     balance = data[0] if data else 0
-
     return render_template("dashboard.html", balance=balance)
 
-# ---------------- DEPOSIT ----------------
+# ---------------- DEPOSIT REQUEST ----------------
 @app.route('/deposit', methods=['POST'])
 def deposit():
     amount = float(request.form['amount'])
-    user_id = session['user_id']
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
-    data = c.fetchone()
-
-    if data:
-        new_balance = data[0] + amount
-        c.execute("UPDATE wallet SET balance=? WHERE user_id=?", (new_balance, user_id))
-        c.execute("INSERT INTO transactions (user_id, type, amount) VALUES (?, 'deposit', ?)", (user_id, amount))
+    c.execute("""
+        INSERT INTO requests (user_id, username, type, amount)
+        VALUES (?, ?, ?, ?)
+    """, (session['user_id'], session['username'], 'deposit', amount))
 
     conn.commit()
     conn.close()
 
-    return redirect('/dashboard')
+    return "Deposit request sent to admin"
 
-# ---------------- WITHDRAW ----------------
+# ---------------- WITHDRAW REQUEST ----------------
 @app.route('/withdraw', methods=['POST'])
 def withdraw():
     amount = float(request.form['amount'])
-    user_id = session['user_id']
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
-    data = c.fetchone()
-
-    if data:
-        new_balance = data[0] - amount
-        c.execute("UPDATE wallet SET balance=? WHERE user_id=?", (new_balance, user_id))
-        c.execute("INSERT INTO transactions (user_id, type, amount) VALUES (?, 'withdraw', ?)", (user_id, amount))
+    c.execute("""
+        INSERT INTO requests (user_id, username, type, amount)
+        VALUES (?, ?, ?, ?)
+    """, (session['user_id'], session['username'], 'withdraw', amount))
 
     conn.commit()
     conn.close()
 
-    return redirect('/dashboard')
+    return "Withdraw request sent to admin"
 
-# ---------------- TRANSACTIONS ----------------
-@app.route('/transactions')
-def transactions():
-    if 'user_id' not in session:
-        return redirect('/')
-
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-
-    c.execute("SELECT type, amount FROM transactions WHERE user_id=?", (session['user_id'],))
-    data = c.fetchall()
-
-    conn.close()
-
-    return render_template("transactions.html", data=data)
-
-# ---------------- ADMIN ----------------
+# ---------------- ADMIN PANEL ----------------
 @app.route('/admin')
 def admin():
     if session.get("username") != "admin":
@@ -173,16 +150,47 @@ def admin():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    c.execute("""
-        SELECT users.id, users.username, COALESCE(wallet.balance, 0)
-        FROM users
-        LEFT JOIN wallet ON users.id = wallet.user_id
-    """)
+    c.execute("SELECT * FROM requests WHERE status='pending'")
+    requests_data = c.fetchall()
 
-    users = c.fetchall()
     conn.close()
 
-    return render_template("admin.html", users=users)
+    return render_template("admin.html", requests=requests_data)
+
+# ---------------- APPROVE REQUEST ----------------
+@app.route('/approve/<int:req_id>')
+def approve(req_id):
+    if session.get("username") != "admin":
+        return redirect('/')
+
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM requests WHERE id=?", (req_id,))
+    req = c.fetchone()
+
+    if req:
+        user_id = req[1]
+        req_type = req[3]
+        amount = req[4]
+
+        c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
+        wallet = c.fetchone()
+
+        balance = wallet[0]
+
+        if req_type == "deposit":
+            new_balance = balance + amount
+        else:
+            new_balance = balance - amount
+
+        c.execute("UPDATE wallet SET balance=? WHERE user_id=?", (new_balance, user_id))
+        c.execute("UPDATE requests SET status='approved' WHERE id=?", (req_id,))
+
+        conn.commit()
+
+    conn.close()
+    return redirect('/admin')
 
 # ---------------- LOGOUT ----------------
 @app.route('/logout')
@@ -193,20 +201,12 @@ def logout():
 # ---------------- PWA FILES ----------------
 @app.route('/manifest.json')
 def manifest():
-    return send_from_directory(
-        '.',
-        'manifest.json',
-        mimetype='application/json'
-    )
+    return send_from_directory('.', 'manifest.json', mimetype='application/json')
 
 @app.route('/service-worker.js')
 def service_worker():
-    return send_from_directory(
-        '.',
-        'service-worker.js',
-        mimetype='application/javascript'
-    )
+    return send_from_directory('.', 'service-worker.js', mimetype='application/javascript')
 
-# ---------------- RUN APP ----------------
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
