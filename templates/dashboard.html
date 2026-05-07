@@ -1,14 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
+
     <title>DSMARKET Dashboard</title>
 
+    <!-- PWA SUPPORT -->
+    <link rel="manifest" href="/static/manifest.json">
+
+    <meta name="theme-color" content="#0f172a">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js')
+            .then(function() {
+                console.log("Service Worker Registered");
+            });
+        }
+    </script>
+
     <style>
+
         body{
             font-family:Arial;
             background:#0f172a;
             color:white;
             padding:20px;
+            margin:0;
         }
 
         .card{
@@ -16,6 +35,7 @@
             padding:20px;
             border-radius:12px;
             margin-bottom:20px;
+            box-shadow:0 0 10px rgba(0,0,0,0.3);
         }
 
         input{
@@ -25,6 +45,7 @@
             margin-bottom:10px;
             border:none;
             border-radius:6px;
+            box-sizing:border-box;
         }
 
         button{
@@ -34,6 +55,8 @@
             padding:12px 20px;
             border-radius:6px;
             cursor:pointer;
+            width:100%;
+            font-size:16px;
         }
 
         table{
@@ -58,7 +81,9 @@
             border-radius:8px;
             margin-top:10px;
         }
+
     </style>
+
 </head>
 
 <body>
@@ -66,48 +91,99 @@
 <h1>DSMARKET USER DASHBOARD</h1>
 
 <div class="card">
+
     <h2>Wallet Balance</h2>
+
     <h1>ZMW {{ balance }}</h1>
+
 </div>
 
 <div class="card">
+
     <h2>💰 Deposit Money</h2>
 
     <div class="highlight">
+
         <p><strong>Send Money To These Numbers:</strong></p>
-        <p>📱 Airtel Money: <strong>0978004797</strong></p>
-        <p>📱 MTN Money: <strong>0965222486</strong></p>
+
+        <p>📱 Airtel Money:
+            <strong>0978004797</strong>
+        </p>
+
+        <p>📱 MTN Money:
+            <strong>0965222486</strong>
+        </p>
+
     </div>
 
     <p>
-        Step 1: Send money to one of the numbers above<br>
-        Step 2: Enter the amount below<br>
-        Step 3: Submit deposit request for admin approval
+        Step 1: Send money to one of the numbers above
+        <br><br>
+
+        Step 2: Enter amount below
+        <br><br>
+
+        Step 3: Admin approves deposit
     </p>
 
     <form action="/deposit" method="POST">
-        <input type="number" name="amount" placeholder="Enter deposit amount" required>
-        <button type="submit">Submit Deposit Request</button>
+
+        <input
+            type="number"
+            name="amount"
+            placeholder="Enter deposit amount"
+            required
+        >
+
+        <button type="submit">
+            Submit Deposit Request
+        </button>
+
     </form>
+
 </div>
 
 <div class="card">
+
     <h2>🏧 Withdraw Money</h2>
 
-    <p>
-        Withdraw requests are reviewed by admin before approval.
-    </p>
-
     <form action="/withdraw" method="POST">
-        <input type="number" name="amount" placeholder="Enter withdrawal amount" required>
-        <button type="submit">Submit Withdrawal Request</button>
+
+        <input
+            type="number"
+            name="amount"
+            placeholder="Withdrawal amount"
+            required
+        >
+
+        <input
+            type="text"
+            name="number"
+            placeholder="Mobile number"
+            required
+        >
+
+        <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+        >
+
+        <button type="submit">
+            Submit Withdrawal Request
+        </button>
+
     </form>
+
 </div>
 
 <div class="card">
+
     <h2>📊 Transaction History</h2>
 
     <table>
+
         <tr>
             <th>Type</th>
             <th>Amount</th>
@@ -115,13 +191,17 @@
         </tr>
 
         {% for h in history %}
+
         <tr>
             <td>{{ h[0] }}</td>
             <td>{{ h[1] }}</td>
             <td>{{ h[2] }}</td>
         </tr>
+
         {% endfor %}
+
     </table>
+
 </div>
 
 </body>
