@@ -79,6 +79,7 @@ def login():
 
     c.execute("SELECT * FROM users WHERE username=?", (username,))
     user = c.fetchone()
+
     conn.close()
 
     if user and check_password_hash(user[2], password):
@@ -100,10 +101,20 @@ def dashboard():
     c.execute("SELECT balance FROM wallet WHERE user_id=?", (session['user_id'],))
     data = c.fetchone()
 
+    balance = data[0] if data else 0
+
+    c.execute("""
+        SELECT type, amount, status
+        FROM requests
+        WHERE user_id=?
+        ORDER BY id DESC
+    """, (session['user_id'],))
+
+    history = c.fetchall()
+
     conn.close()
 
-    balance = data[0] if data else 0
-    return render_template("dashboard.html", balance=balance)
+    return render_template("dashboard.html", balance=balance, history=history)
 
 # ---------------- DEPOSIT REQUEST ----------------
 @app.route('/deposit', methods=['POST'])
@@ -121,7 +132,7 @@ def deposit():
     conn.commit()
     conn.close()
 
-    return "Deposit request sent to admin"
+    return redirect('/dashboard')
 
 # ---------------- WITHDRAW REQUEST ----------------
 @app.route('/withdraw', methods=['POST'])
@@ -139,7 +150,7 @@ def withdraw():
     conn.commit()
     conn.close()
 
-    return "Withdraw request sent to admin"
+    return redirect('/dashboard')
 
 # ---------------- ADMIN PANEL ----------------
 @app.route('/admin')
@@ -157,7 +168,7 @@ def admin():
 
     return render_template("admin.html", requests=requests_data)
 
-# ---------------- APPROVE REQUEST ----------------
+# ---------------- APPROVE ----------------
 @app.route('/approve/<int:req_id>')
 def approve(req_id):
     if session.get("username") != "admin":
@@ -197,15 +208,6 @@ def approve(req_id):
 def logout():
     session.clear()
     return redirect('/')
-
-# ---------------- PWA FILES ----------------
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('.', 'manifest.json', mimetype='application/json')
-
-@app.route('/service-worker.js')
-def service_worker():
-    return send_from_directory('.', 'service-worker.js', mimetype='application/javascript')
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":

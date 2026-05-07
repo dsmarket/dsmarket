@@ -1,91 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>DSMARKET Dashboard</title>
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            color: white;
+        body{
+            font-family:Arial;
+            background:#0f172a;
+            color:white;
+            padding:20px;
         }
 
-        .container {
-            max-width: 420px;
-            margin: auto;
-            padding: 20px;
+        .card{
+            background:#111827;
+            padding:20px;
+            border-radius:12px;
+            margin-bottom:20px;
         }
 
-        .card {
-            background: #111827;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 15px;
+        input{
+            width:100%;
+            padding:12px;
+            margin-top:10px;
+            margin-bottom:10px;
+            border:none;
+            border-radius:6px;
         }
 
-        .balance {
-            font-size: 30px;
-            color: #22c55e;
-            text-align: center;
+        button{
+            background:#22c55e;
+            color:white;
+            border:none;
+            padding:12px 20px;
+            border-radius:6px;
+            cursor:pointer;
         }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 8px;
-            border: none;
-            border-radius: 8px;
+        table{
+            width:100%;
+            border-collapse:collapse;
+            background:#111827;
         }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            background: #38bdf8;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
+        th,td{
+            border:1px solid #334155;
+            padding:10px;
+            text-align:center;
         }
 
-        a {
-            color: #f87171;
-            text-decoration: none;
-            display: block;
-            text-align: center;
-            margin-top: 10px;
+        th{
+            background:#1e293b;
+        }
+
+        .highlight{
+            background:#0b1220;
+            padding:10px;
+            border-radius:8px;
+            margin-top:10px;
         }
     </style>
 </head>
 
 <body>
 
-<div class="container">
+<h1>DSMARKET USER DASHBOARD</h1>
 
-    <div class="card">
-        <h2>💰 DSMARKET WALLET</h2>
-        <div class="balance">{{ balance }}</div>
+<div class="card">
+    <h2>Wallet Balance</h2>
+    <h1>ZMW {{ balance }}</h1>
+</div>
+
+<div class="card">
+    <h2>💰 Deposit Money</h2>
+
+    <div class="highlight">
+        <p><strong>Send Money To These Numbers:</strong></p>
+        <p>📱 Airtel Money: <strong>0978004797</strong></p>
+        <p>📱 MTN Money: <strong>0965222486</strong></p>
     </div>
 
-    <div class="card">
-        <h3>Deposit</h3>
-        <form action="/deposit" method="POST">
-            <input name="amount" placeholder="Amount">
-            <button>Deposit</button>
-        </form>
-    </div>
+    <p>
+        Step 1: Send money to one of the numbers above<br>
+        Step 2: Enter the amount below<br>
+        Step 3: Submit deposit request for admin approval
+    </p>
 
-    <div class="card">
-        <h3>Withdraw</h3>
-        <form action="/withdraw" method="POST">
-            <input name="amount" placeholder="Amount">
-            <button>Withdraw</button>
-        </form>
-    </div>
+    <form action="/deposit" method="POST">
+        <input type="number" name="amount" placeholder="Enter deposit amount" required>
+        <button type="submit">Submit Deposit Request</button>
+    </form>
+</div>
 
-    <a href="/transactions">View Transactions</a>
-    <a href="/logout">Logout</a>
+<div class="card">
+    <h2>🏧 Withdraw Money</h2>
 
+    <p>
+        Withdraw requests are reviewed by admin before approval.
+    </p>
+
+    <form action="/withdraw" method="POST">
+        <input type="number" name="amount" placeholder="Enter withdrawal amount" required>
+        <button type="submit">Submit Withdrawal Request</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>📊 Transaction History</h2>
+
+    <table>
+        <tr>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+        </tr>
+
+        {% for h in history %}
+        <tr>
+            <td>{{ h[0] }}</td>
+            <td>{{ h[1] }}</td>
+            <td>{{ h[2] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
 </body>
