@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel</title>
+    <title>DSMARKET Admin Panel</title>
 
     <style>
         body {
             font-family: Arial;
-            background: #0b1220;
+            background: #0f172a;
             color: white;
             padding: 20px;
         }
@@ -18,33 +18,51 @@
         }
 
         th, td {
-            padding: 12px;
             border: 1px solid #334155;
+            padding: 12px;
             text-align: center;
         }
 
         th {
-            background: #1f2937;
+            background: #1e293b;
+        }
+
+        a {
+            background: #22c55e;
+            color: white;
+            padding: 6px 10px;
+            text-decoration: none;
+            border-radius: 5px;
         }
     </style>
 </head>
 
 <body>
 
-<h2>🛠 DSMARKET ADMIN PANEL</h2>
+<h2>DSMARKET ADMIN APPROVAL PANEL</h2>
 
 <table>
     <tr>
         <th>ID</th>
+        <th>User ID</th>
         <th>Username</th>
-        <th>Balance</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Action</th>
     </tr>
 
-    {% for u in users %}
+    {% for r in requests %}
     <tr>
-        <td>{{ u[0] }}</td>
-        <td>{{ u[1] }}</td>
-        <td>{{ u[2] }}</td>
+        <td>{{ r[0] }}</td>
+        <td>{{ r[1] }}</td>
+        <td>{{ r[2] }}</td>
+        <td>{{ r[3] }}</td>
+        <td>{{ r[4] }}</td>
+        <td>{{ r[5] }}</td>
+        <td>
+            <a href="/approve/{{ r[0] }}">Approve</a>
+        </td>
     </tr>
     {% endfor %}
 
