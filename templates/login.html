@@ -1,27 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>DSMARKET</title>
+
+    <!-- PWA SETUP -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+
+        .box {
+            background: #111827;
+            padding: 25px;
+            border-radius: 15px;
+            width: 320px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #38bdf8;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        h2 {
+            text-align: center;
+        }
+    </style>
 </head>
+
 <body>
 
-<h2>Login</h2>
+<div class="box">
 
-<form method="POST" action="/login">
-    Username: <input type="text" name="username"><br><br>
-    Password: <input type="password" name="password"><br><br>
-    <button type="submit">Login</button>
-</form>
+    <h2>DSMARKET</h2>
 
-<hr>
+    <!-- LOGIN -->
+    <form action="/login" method="POST">
+        <input name="username" placeholder="Username">
+        <input name="password" type="password" placeholder="Password">
+        <button>Login</button>
+    </form>
 
-<h2>Register</h2>
+    <!-- REGISTER -->
+    <form action="/register" method="POST">
+        <input name="username" placeholder="New Username">
+        <input name="password" type="password" placeholder="New Password">
+        <button>Register</button>
+    </form>
 
-<form method="POST" action="/register">
-    Username: <input type="text" name="username"><br><br>
-    Password: <input type="password" name="password"><br><br>
-    <button type="submit">Register</button>
-</form>
+</div>
 
 </body>
 </html>

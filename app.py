@@ -1,41 +1,39 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_from_directory
 import sqlite3
-import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = "secret123"
+app.secret_key = "dsmarket_secret"
 
 # ---------------- DATABASE ----------------
 def init_db():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    c.execute('''
+    c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
+            username TEXT UNIQUE,
             password TEXT
         )
-    ''')
+    """)
 
-    c.execute('''
+    c.execute("""
         CREATE TABLE IF NOT EXISTS wallet (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            balance REAL,
-            plan TEXT,
-            last_profit TEXT
+            user_id INTEGER UNIQUE,
+            balance REAL DEFAULT 0
         )
-    ''')
+    """)
 
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS history (
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
-            amount REAL,
-            time TEXT
+            type TEXT,
+            amount REAL
         )
-    ''')
+    """)
 
     conn.commit()
     conn.close()
@@ -51,14 +49,21 @@ def home():
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form['username']
-    password = request.form['password']
+    password = generate_password_hash(request.form['password'])
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-    conn.commit()
-    conn.close()
 
+    try:
+        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        user_id = c.lastrowid
+        c.execute("INSERT INTO wallet (user_id, balance) VALUES (?, ?)", (user_id, 0))
+        conn.commit()
+    except:
+        conn.close()
+        return "User already exists"
+
+    conn.close()
     return redirect('/')
 
 # ---------------- LOGIN ----------------
@@ -67,14 +72,16 @@ def login():
     username = request.form['username']
     password = request.form['password']
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+
+    c.execute("SELECT * FROM users WHERE username=?", (username,))
     user = c.fetchone()
     conn.close()
 
-    if user:
+    if user and check_password_hash(user[2], password):
         session['user_id'] = user[0]
+        session['username'] = user[1]
         return redirect('/dashboard')
 
     return "Invalid login"
@@ -85,37 +92,25 @@ def dashboard():
     if 'user_id' not in session:
         return redirect('/')
 
-    user_id = session['user_id']
-
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
-    wallet = c.fetchone()
-
-    if wallet:
-        balance = wallet[0]
-    else:
-        balance = 0
-
-    # GET HISTORY FOR CHART
-    c.execute("SELECT amount FROM history WHERE user_id=? ORDER BY id ASC", (user_id,))
-    history = c.fetchall()
+    c.execute("SELECT balance FROM wallet WHERE user_id=?", (session['user_id'],))
+    data = c.fetchone()
 
     conn.close()
 
-    chart_data = [h[0] for h in history]
+    balance = data[0] if data else 0
 
-    return render_template("dashboard.html", balance=balance, chart_data=chart_data)
+    return render_template("dashboard.html", balance=balance)
 
 # ---------------- DEPOSIT ----------------
 @app.route('/deposit', methods=['POST'])
 def deposit():
     amount = float(request.form['amount'])
     user_id = session['user_id']
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
     c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
@@ -124,13 +119,7 @@ def deposit():
     if data:
         new_balance = data[0] + amount
         c.execute("UPDATE wallet SET balance=? WHERE user_id=?", (new_balance, user_id))
-    else:
-        new_balance = amount
-        c.execute("INSERT INTO wallet (user_id, balance, plan, last_profit) VALUES (?, ?, NULL, NULL)", (user_id, amount))
-
-    # SAVE HISTORY
-    c.execute("INSERT INTO history (user_id, amount, time) VALUES (?, ?, ?)",
-              (user_id, new_balance, now))
+        c.execute("INSERT INTO transactions (user_id, type, amount) VALUES (?, 'deposit', ?)", (user_id, amount))
 
     conn.commit()
     conn.close()
@@ -142,9 +131,8 @@ def deposit():
 def withdraw():
     amount = float(request.form['amount'])
     user_id = session['user_id']
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
     c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
@@ -153,15 +141,48 @@ def withdraw():
     if data:
         new_balance = data[0] - amount
         c.execute("UPDATE wallet SET balance=? WHERE user_id=?", (new_balance, user_id))
-
-        # SAVE HISTORY
-        c.execute("INSERT INTO history (user_id, amount, time) VALUES (?, ?, ?)",
-                  (user_id, new_balance, now))
+        c.execute("INSERT INTO transactions (user_id, type, amount) VALUES (?, 'withdraw', ?)", (user_id, amount))
 
     conn.commit()
     conn.close()
 
     return redirect('/dashboard')
+
+# ---------------- TRANSACTIONS ----------------
+@app.route('/transactions')
+def transactions():
+    if 'user_id' not in session:
+        return redirect('/')
+
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+
+    c.execute("SELECT type, amount FROM transactions WHERE user_id=?", (session['user_id'],))
+    data = c.fetchall()
+
+    conn.close()
+
+    return render_template("transactions.html", data=data)
+
+# ---------------- ADMIN ----------------
+@app.route('/admin')
+def admin():
+    if session.get("username") != "admin":
+        return redirect('/')
+
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+
+    c.execute("""
+        SELECT users.id, users.username, COALESCE(wallet.balance, 0)
+        FROM users
+        LEFT JOIN wallet ON users.id = wallet.user_id
+    """)
+
+    users = c.fetchall()
+    conn.close()
+
+    return render_template("admin.html", users=users)
 
 # ---------------- LOGOUT ----------------
 @app.route('/logout')
@@ -169,5 +190,23 @@ def logout():
     session.clear()
     return redirect('/')
 
+# ---------------- PWA FILES ----------------
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory(
+        '.',
+        'manifest.json',
+        mimetype='application/json'
+    )
+
+@app.route('/service-worker.js')
+def service_worker():
+    return send_from_directory(
+        '.',
+        'service-worker.js',
+        mimetype='application/javascript'
+    )
+
+# ---------------- RUN APP ----------------
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,51 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Dashboard</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #111827;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+        }
+
+        .balance {
+            font-size: 30px;
+            color: #22c55e;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #38bdf8;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        a {
+            color: #f87171;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body>
 
-<h2>Wallet Dashboard</h2>
+<div class="container">
 
-<h3>Balance: {{ balance }}</h3>
+    <div class="card">
+        <h2>💰 DSMARKET WALLET</h2>
+        <div class="balance">{{ balance }}</div>
+    </div>
 
-<!-- CHART -->
-<canvas id="chart"></canvas>
+    <div class="card">
+        <h3>Deposit</h3>
+        <form action="/deposit" method="POST">
+            <input name="amount" placeholder="Amount">
+            <button>Deposit</button>
+        </form>
+    </div>
 
-<br>
+    <div class="card">
+        <h3>Withdraw</h3>
+        <form action="/withdraw" method="POST">
+            <input name="amount" placeholder="Amount">
+            <button>Withdraw</button>
+        </form>
+    </div>
 
-<h3>Deposit</h3>
-<form method="POST" action="/deposit">
-    <input name="amount" type="number">
-    <button>Deposit</button>
-</form>
+    <a href="/transactions">View Transactions</a>
+    <a href="/logout">Logout</a>
 
-<h3>Withdraw</h3>
-<form method="POST" action="/withdraw">
-    <input name="amount" type="number">
-    <button>Withdraw</button>
-</form>
-
-<a href="/logout">Logout</a>
-
-<script>
-let data = {{ chart_data | tojson }};
-
-new Chart(document.getElementById('chart'), {
-    type: 'line',
-    data: {
-        labels: data.map((_, i) => "Tx " + (i+1)),
-        datasets: [{
-            label: "Balance History",
-            data: data,
-            borderColor: "green",
-            fill: false
-        }]
-    }
-});
-</script>
+</div>
 
 </body>
 </html>

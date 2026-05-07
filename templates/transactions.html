@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel</title>
+    <title>Transactions</title>
 
     <style>
         body {
             font-family: Arial;
-            background: #0b1220;
+            background: #0f172a;
             color: white;
             padding: 20px;
         }
@@ -18,7 +18,7 @@
         }
 
         th, td {
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #334155;
             text-align: center;
         }
@@ -26,29 +26,34 @@
         th {
             background: #1f2937;
         }
+
+        a {
+            color: #38bdf8;
+        }
     </style>
 </head>
 
 <body>
 
-<h2>🛠 DSMARKET ADMIN PANEL</h2>
+<h2>📊 Transaction History</h2>
 
 <table>
     <tr>
-        <th>ID</th>
-        <th>Username</th>
-        <th>Balance</th>
+        <th>Type</th>
+        <th>Amount</th>
     </tr>
 
-    {% for u in users %}
+    {% for t in data %}
     <tr>
-        <td>{{ u[0] }}</td>
-        <td>{{ u[1] }}</td>
-        <td>{{ u[2] }}</td>
+        <td>{{ t[0] }}</td>
+        <td>{{ t[1] }}</td>
     </tr>
     {% endfor %}
 
 </table>
+
+<br>
+<a href="/dashboard">Back</a>
 
 </body>
 </html>
