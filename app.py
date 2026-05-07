@@ -1,214 +1,228 @@
-from flask import Flask, render_template, request, redirect, session, send_from_directory
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
-from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = "dsmarket_secret"
+app.secret_key = "dsmarket"
 
-# ---------------- DATABASE ----------------
-def init_db():
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
+# DATABASE CONNECTION
+conn = sqlite3.connect("database.db", check_same_thread=False)
+c = conn.cursor()
 
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT
-        )
-    """)
+# USERS TABLE
+c.execute("""
+CREATE TABLE IF NOT EXISTS users(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    password TEXT,
+    balance INTEGER DEFAULT 0
+)
+""")
 
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS wallet (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE,
-            balance REAL DEFAULT 0
-        )
-    """)
+# REQUESTS TABLE
+c.execute("""
+CREATE TABLE IF NOT EXISTS requests(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    type TEXT,
+    amount INTEGER,
+    status TEXT,
+    number TEXT
+)
+""")
 
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            username TEXT,
-            type TEXT,
-            amount REAL,
-            status TEXT DEFAULT 'pending'
-        )
-    """)
+conn.commit()
+
+# HOME PAGE
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+# REGISTER
+@app.route("/register", methods=["POST"])
+def register():
+
+    username = request.form["username"]
+    password = request.form["password"]
+
+    c.execute(
+        "INSERT INTO users(username,password,balance) VALUES(?,?,?)",
+        (username,password,0)
+    )
 
     conn.commit()
-    conn.close()
 
-init_db()
+    return redirect("/")
 
-# ---------------- HOME ----------------
-@app.route('/')
-def home():
-    return render_template("login.html")
-
-# ---------------- REGISTER ----------------
-@app.route('/register', methods=['POST'])
-def register():
-    username = request.form['username']
-    password = generate_password_hash(request.form['password'])
-
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-
-    try:
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-        user_id = c.lastrowid
-        c.execute("INSERT INTO wallet (user_id, balance) VALUES (?, ?)", (user_id, 0))
-        conn.commit()
-    except:
-        conn.close()
-        return "User already exists"
-
-    conn.close()
-    return redirect('/')
-
-# ---------------- LOGIN ----------------
-@app.route('/login', methods=['POST'])
+# LOGIN
+@app.route("/login", methods=["POST"])
 def login():
-    username = request.form['username']
-    password = request.form['password']
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
+    username = request.form["username"]
+    password = request.form["password"]
 
-    c.execute("SELECT * FROM users WHERE username=?", (username,))
+    c.execute(
+        "SELECT * FROM users WHERE username=? AND password=?",
+        (username,password)
+    )
+
     user = c.fetchone()
 
-    conn.close()
+    if user:
 
-    if user and check_password_hash(user[2], password):
-        session['user_id'] = user[0]
-        session['username'] = user[1]
-        return redirect('/dashboard')
+        session["username"] = username
 
-    return "Invalid login"
+        return redirect("/dashboard")
 
-# ---------------- DASHBOARD ----------------
-@app.route('/dashboard')
+    return "Wrong login details"
+
+# USER DASHBOARD
+@app.route("/dashboard")
 def dashboard():
-    if 'user_id' not in session:
-        return redirect('/')
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
+    if "username" not in session:
+        return redirect("/")
 
-    c.execute("SELECT balance FROM wallet WHERE user_id=?", (session['user_id'],))
-    data = c.fetchone()
+    username = session["username"]
 
-    balance = data[0] if data else 0
+    c.execute(
+        "SELECT balance FROM users WHERE username=?",
+        (username,)
+    )
 
-    c.execute("""
-        SELECT type, amount, status
-        FROM requests
-        WHERE user_id=?
-        ORDER BY id DESC
-    """, (session['user_id'],))
+    balance = c.fetchone()[0]
+
+    c.execute(
+        "SELECT type,amount,status FROM requests WHERE username=?",
+        (username,)
+    )
 
     history = c.fetchall()
 
-    conn.close()
+    return render_template(
+        "dashboard.html",
+        balance=balance,
+        history=history
+    )
 
-    return render_template("dashboard.html", balance=balance, history=history)
-
-# ---------------- DEPOSIT REQUEST ----------------
-@app.route('/deposit', methods=['POST'])
+# DEPOSIT
+@app.route("/deposit", methods=["POST"])
 def deposit():
-    amount = float(request.form['amount'])
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
+    if "username" not in session:
+        return redirect("/")
 
-    c.execute("""
-        INSERT INTO requests (user_id, username, type, amount)
-        VALUES (?, ?, ?, ?)
-    """, (session['user_id'], session['username'], 'deposit', amount))
+    amount = request.form["amount"]
+
+    c.execute(
+        """
+        INSERT INTO requests(username,type,amount,status,number)
+        VALUES(?,?,?,?,?)
+        """,
+        (
+            session["username"],
+            "Deposit",
+            amount,
+            "Pending",
+            ""
+        )
+    )
 
     conn.commit()
-    conn.close()
 
-    return redirect('/dashboard')
+    return redirect("/dashboard")
 
-# ---------------- WITHDRAW REQUEST ----------------
-@app.route('/withdraw', methods=['POST'])
+# WITHDRAW
+@app.route("/withdraw", methods=["POST"])
 def withdraw():
-    amount = float(request.form['amount'])
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
+    if "username" not in session:
+        return redirect("/")
 
-    c.execute("""
-        INSERT INTO requests (user_id, username, type, amount)
-        VALUES (?, ?, ?, ?)
-    """, (session['user_id'], session['username'], 'withdraw', amount))
+    amount = request.form["amount"]
+    number = request.form["number"]
+
+    c.execute(
+        """
+        INSERT INTO requests(username,type,amount,status,number)
+        VALUES(?,?,?,?,?)
+        """,
+        (
+            session["username"],
+            "Withdraw",
+            amount,
+            "Pending",
+            number
+        )
+    )
 
     conn.commit()
-    conn.close()
 
-    return redirect('/dashboard')
+    return redirect("/dashboard")
 
-# ---------------- ADMIN PANEL ----------------
-@app.route('/admin')
+# ADMIN DASHBOARD
+@app.route("/admin")
 def admin():
-    if session.get("username") != "admin":
-        return redirect('/')
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
+    c.execute(
+        "SELECT * FROM requests WHERE status='Pending'"
+    )
 
-    c.execute("SELECT * FROM requests WHERE status='pending'")
     requests_data = c.fetchall()
 
-    conn.close()
+    return render_template(
+        "admin.html",
+        requests=requests_data
+    )
 
-    return render_template("admin.html", requests=requests_data)
+# APPROVE REQUEST
+@app.route("/approve/<int:id>")
+def approve(id):
 
-# ---------------- APPROVE ----------------
-@app.route('/approve/<int:req_id>')
-def approve(req_id):
-    if session.get("username") != "admin":
-        return redirect('/')
+    c.execute(
+        "SELECT * FROM requests WHERE id=?",
+        (id,)
+    )
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-
-    c.execute("SELECT * FROM requests WHERE id=?", (req_id,))
     req = c.fetchone()
 
-    if req:
-        user_id = req[1]
-        req_type = req[3]
-        amount = req[4]
+    username = req[1]
+    req_type = req[2]
+    amount = req[3]
 
-        c.execute("SELECT balance FROM wallet WHERE user_id=?", (user_id,))
-        wallet = c.fetchone()
+    # APPROVE DEPOSIT
+    if req_type == "Deposit":
 
-        balance = wallet[0]
+        c.execute(
+            "UPDATE users SET balance = balance + ? WHERE username=?",
+            (amount,username)
+        )
 
-        if req_type == "deposit":
-            new_balance = balance + amount
-        else:
-            new_balance = balance - amount
+    # APPROVE WITHDRAWAL
+    elif req_type == "Withdraw":
 
-        c.execute("UPDATE wallet SET balance=? WHERE user_id=?", (new_balance, user_id))
-        c.execute("UPDATE requests SET status='approved' WHERE id=?", (req_id,))
+        c.execute(
+            "UPDATE users SET balance = balance - ? WHERE username=?",
+            (amount,username)
+        )
 
-        conn.commit()
+    # UPDATE STATUS
+    c.execute(
+        "UPDATE requests SET status='Approved' WHERE id=?",
+        (id,)
+    )
 
-    conn.close()
-    return redirect('/admin')
+    conn.commit()
 
-# ---------------- LOGOUT ----------------
-@app.route('/logout')
+    return redirect("/admin")
+
+# LOGOUT
+@app.route("/logout")
 def logout():
-    session.clear()
-    return redirect('/')
 
-# ---------------- RUN ----------------
+    session.clear()
+
+    return redirect("/")
+
+# RUN APP
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)

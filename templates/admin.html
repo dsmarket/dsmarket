@@ -1,29 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DSMARKET Admin</title>
+
+    <title>DSMARKET ADMIN</title>
+
+    <style>
+
+        body{
+            margin:0;
+            font-family:Arial;
+            background:#0f172a;
+            color:white;
+        }
+
+        .header{
+            background:#111827;
+            padding:20px;
+            text-align:center;
+        }
+
+        .container{
+            padding:20px;
+        }
+
+        .card{
+            background:#111827;
+            padding:20px;
+            border-radius:12px;
+            margin-bottom:20px;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        th,td{
+            border:1px solid #334155;
+            padding:12px;
+            text-align:center;
+        }
+
+        th{
+            background:#1e293b;
+        }
+
+        .approve{
+            background:#22c55e;
+            color:white;
+            padding:10px 15px;
+            border-radius:6px;
+            text-decoration:none;
+        }
+
+    </style>
+
 </head>
+
 <body>
 
-<h2>Admin Panel</h2>
+<div class="header">
 
-{% for r in requests %}
-    <div style="border:1px solid black; padding:10px; margin:10px;">
+    <h1>DSMARKET ADMIN PANEL</h1>
 
-        <p>ID: {{ r[0] }}</p>
-        <p>User: {{ r[2] }}</p>
-        <p>Type: {{ r[3] }}</p>
-        <p>Amount: {{ r[4] }}</p>
-        <p>Status: {{ r[5] }}</p>
+</div>
 
-        {% if r[6] %}
-            <p>Number: {{ r[6] }}</p>
-        {% endif %}
+<div class="container">
 
-        <a href="/approve/{{ r[0] }}">Approve</a>
+    <div class="card">
+
+        <h2>Pending Requests</h2>
+
+        <table>
+
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+
+            {% for r in requests %}
+
+            <tr>
+
+                <td>{{ r[0] }}</td>
+
+                <td>{{ r[1] }}</td>
+
+                <td>{{ r[2] }}</td>
+
+                <td>ZMW {{ r[3] }}</td>
+
+                <td>{{ r[4] }}</td>
+
+                <td>
+
+                    <a
+                        class="approve"
+                        href="/approve/{{ r[0] }}"
+                    >
+                        APPROVE
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
 
     </div>
-{% endfor %}
+
+</div>
 
 </body>
 </html>
